@@ -17,7 +17,7 @@ build.py  ──每天──▶  GitHub Actions  ──▶  GitHub Pages
 
 - `build.py`：呼叫 Notion API 撈「集團招募主儀表板」與「第一階段面試表」，重算後覆蓋 `data.json`。
 - `index.html`：網頁，載入時讀 `data.json` 畫出 KPI 與兩張圖。
-- `.github/workflows/update.yml`：每天台灣時間 06:00 自動執行 `build.py` 並更新網站。
+- `.github/workflows/update.yml`：每週一台灣時間 06:00 自動執行 `build.py` 並更新網站。
 
 > 只輸出「彙總數字」（總職缺、完成、待招募、各部門人數），**不含任何姓名、薪資、評語**，所以適合對外分享。
 
