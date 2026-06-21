@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集團招募主儀表板</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#1F3864; --navy-soft:#2A4A82; --blue:#2E74B5; --blue-light:#5B9BD5;
+    --bg:#EEF1F6; --panel:#FFFFFF; --line:#D9DEE8; --ink:#1B2433; --ink-soft:#5A6677;
+    --green:#2E8B57; --amber:#C77B16; --gray:#8893A4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC",sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px 56px;}
+  header{background:linear-gradient(110deg,var(--navy) 0%,var(--navy-soft) 100%);
+    color:#fff;padding:30px 0 26px;margin-bottom:28px;border-bottom:4px solid var(--blue);}
+  header .wrap{padding-bottom:0;}
+  .h-top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;}
+  header h1{font-size:26px;font-weight:700;letter-spacing:.5px;}
+  header h1 .bar{display:inline-block;width:6px;height:24px;background:var(--blue-light);
+    margin-right:12px;vertical-align:-3px;border-radius:1px;}
+  header .sub{font-size:13px;color:#C7D3E8;margin-top:6px;margin-left:18px;}
+  .snap{font-size:12.5px;color:#C7D3E8;text-align:right;}
+  .snap b{color:#fff;font-weight:600;}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:28px;}
+  .kpi{background:var(--panel);border-radius:10px;padding:22px 22px 20px;
+    border:1px solid var(--line);position:relative;overflow:hidden;}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--blue);}
+  .kpi .label{font-size:14px;color:var(--ink-soft);font-weight:600;}
+  .kpi .num{font-size:44px;font-weight:700;color:var(--navy);line-height:1.05;margin-top:8px;}
+  .kpi .unit{font-size:16px;font-weight:600;color:var(--ink-soft);margin-left:4px;}
+  .kpi .note{font-size:12px;color:var(--gray);margin-top:6px;}
+  .kpi.done::before{background:var(--green);} .kpi.done .num{color:var(--green);}
+  .kpi.wait::before{background:var(--amber);} .kpi.wait .num{color:var(--amber);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .panel{background:var(--panel);border-radius:10px;border:1px solid var(--line);padding:20px 22px 22px;}
+  .panel .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;}
+  .panel h2{font-size:16px;color:var(--navy);font-weight:700;display:flex;align-items:center;gap:8px;}
+  .panel h2::before{content:"";width:5px;height:16px;background:var(--blue);display:inline-block;border-radius:1px;}
+  .panel .total{font-size:13px;color:var(--ink-soft);font-weight:600;}
+  .panel .total b{font-size:18px;color:var(--navy);}
+  .panel .cap{font-size:12px;color:var(--gray);margin:2px 0 16px 13px;}
+  .chart-box{position:relative;height:340px;}
+  footer{margin-top:24px;font-size:11.5px;color:var(--gray);text-align:center;line-height:1.7;}
+  @media (max-width:900px){ .kpis{grid-template-columns:1fr;} .grid2{grid-template-columns:1fr;} }
+  @media print{ body{background:#fff;} .panel,.kpi{break-inside:avoid;} }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="h-top">
+      <div>
+        <h1><span class="bar"></span>集團招募主儀表板</h1>
+        <div class="sub">生策會 ｜ 人力資源 HR ｜ 經營決策總覽</div>
+      </div>
+      <div class="snap">資料每日自動更新自 Notion<br>最後更新：<b id="snap">載入中…</b></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="kpis" id="kpis"></div>
+  <div class="grid2">
+    <div class="panel">
+      <div class="ph">
+        <h2>各部門所有人數</h2>
+        <span class="total">在職合計 <b id="hcTotal">0</b> 人</span>
+      </div>
+      <div class="cap">各部門目前實際在職人數（已排除離職人員）</div>
+      <div class="chart-box"><canvas id="hcChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ph">
+        <h2>各部門人才庫</h2>
+        <span class="total">候選合計 <b id="tpTotal">0</b> 人</span>
+      </div>
+      <div class="cap">已完成第一階段面試（有訪談日期）之候選人數，依部門統計</div>
+      <div class="chart-box"><canvas id="tpChart"></canvas></div>
+    </div>
+  </div>
+  <footer>
+    職缺與人才庫統計每日自動擷取自 Notion；在職人數於人事異動時更新。<br>
+    人才庫＝第一階段初步訪談評估表中已填訪談日期者（實際完成電話訪談）。
+  </footer>
+</div>
+
+<script>
+const NAVY="#1F3864", BLUE="#2E74B5";
+Chart.defaults.font.family='"Microsoft JhengHei","微軟正黑體",sans-serif';
+Chart.defaults.font.size=13; Chart.defaults.color="#5A6677";
+
+function barChart(id,labels,data,color,unit){
+ return new Chart(document.getElementById(id),{
+  type:"bar",
+  data:{labels,datasets:[{data,backgroundColor:color,borderRadius:5,barThickness:32}]},
+  options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,layout:{padding:{right:24}},
+   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x+" "+unit}}},
+   scales:{x:{beginAtZero:true,grid:{color:"#EDF0F5"}},y:{grid:{display:false}}},
+   animation:{duration:600}}
+ });
+}
+function addLabels(id,arr){
+ const ch=Chart.getChart(id); if(!ch) return;
+ const ctx=ch.ctx; ctx.save();
+ ctx.font='700 13px "Microsoft JhengHei",sans-serif'; ctx.fillStyle="#1F3864"; ctx.textBaseline="middle";
+ ch.getDatasetMeta(0).data.forEach((bar,i)=>ctx.fillText(arr[i],bar.x+8,bar.y));
+ ctx.restore();
+}
+
+fetch("data.json?_="+Date.now())   // 加時間戳避免瀏覽器快取
+ .then(r=>r.json())
+ .then(d=>{
+   document.getElementById("snap").textContent = d.snapshot;
+   const k=d.kpi;
+   const kpis=[
+    {label:"目前總職缺", num:k.total, unit:"個", note:"完成 "+k.done+" ＋ 待招募 "+k.wait, cls:""},
+    {label:"完成招募數", num:k.done,  unit:"人", note:"本期已到職補實", cls:"done"},
+    {label:"待招募數",   num:k.wait,  unit:"個", note:"招募流程進行中", cls:"wait"}
+   ];
+   document.getElementById("kpis").innerHTML=kpis.map(x=>`
+    <div class="kpi ${x.cls}">
+      <div class="label">${x.label}</div>
+      <div class="num">${x.num}<span class="unit">${x.unit}</span></div>
+      <div class="note">${x.note}</div>
+    </div>`).join("");
+
+   document.getElementById("hcTotal").textContent=d.headcount.reduce((a,b)=>a+b,0);
+   document.getElementById("tpTotal").textContent=d.talent.reduce((a,b)=>a+b,0);
+   barChart("hcChart",d.depts,d.headcount,NAVY,"人");
+   barChart("tpChart",d.depts,d.talent,BLUE,"位候選人");
+   setTimeout(()=>{addLabels("hcChart",d.headcount);addLabels("tpChart",d.talent);},700);
+ })
+ .catch(e=>{
+   document.getElementById("snap").textContent="資料讀取失敗";
+   console.error(e);
+ });
+</script>
+</body>
+</html>
