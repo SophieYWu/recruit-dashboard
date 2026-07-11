@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>集團招募主儀表板</title>
+<title>招募進度儀表板</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
@@ -14,7 +14,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:"Microsoft JhengHei","微軟正黑體","PingFang TC",sans-serif;
     background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 24px 56px;}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 24px 56px;}
   header{background:linear-gradient(110deg,var(--navy) 0%,var(--navy-soft) 100%);
     color:#fff;padding:30px 0 26px;margin-bottom:28px;border-bottom:4px solid var(--blue);}
   header .wrap{padding-bottom:0;}
@@ -35,17 +35,21 @@
   .kpi .note{font-size:12px;color:var(--gray);margin-top:6px;}
   .kpi.done::before{background:var(--green);} .kpi.done .num{color:var(--green);}
   .kpi.wait::before{background:var(--amber);} .kpi.wait .num{color:var(--amber);}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  .panel{background:var(--panel);border-radius:10px;border:1px solid var(--line);padding:20px 22px 22px;}
-  .panel .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;}
-  .panel h2{font-size:16px;color:var(--navy);font-weight:700;display:flex;align-items:center;gap:8px;}
-  .panel h2::before{content:"";width:5px;height:16px;background:var(--blue);display:inline-block;border-radius:1px;}
-  .panel .total{font-size:13px;color:var(--ink-soft);font-weight:600;}
-  .panel .total b{font-size:18px;color:var(--navy);}
-  .panel .cap{font-size:12px;color:var(--gray);margin:2px 0 16px 13px;}
-  .chart-box{position:relative;height:340px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .panel{background:var(--panel);border-radius:10px;border:1px solid var(--line);padding:20px 20px 22px;}
+  .panel .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;gap:8px;}
+  .panel h2{font-size:15.5px;color:var(--navy);font-weight:700;display:flex;align-items:center;gap:8px;}
+  .panel h2::before{content:"";width:5px;height:15px;background:var(--blue);display:inline-block;border-radius:1px;}
+  .panel .total{font-size:12.5px;color:var(--ink-soft);font-weight:600;white-space:nowrap;}
+  .panel .total b{font-size:17px;color:var(--navy);}
+  .panel .cap{font-size:11.5px;color:var(--gray);margin:2px 0 14px 13px;min-height:30px;}
+  .chart-box{position:relative;height:300px;}
   footer{margin-top:24px;font-size:11.5px;color:var(--gray);text-align:center;line-height:1.7;}
-  @media (max-width:900px){ .kpis{grid-template-columns:1fr;} .grid2{grid-template-columns:1fr;} }
+  @media (max-width:960px){
+    .kpis{grid-template-columns:1fr;}
+    .grid3{grid-template-columns:1fr;}
+    .panel .cap{min-height:0;}
+  }
   @media print{ body{background:#fff;} .panel,.kpi{break-inside:avoid;} }
 </style>
 </head>
@@ -55,7 +59,7 @@
     <div class="h-top">
       <div>
         <h1><span class="bar"></span>集團招募主儀表板</h1>
-        <div class="sub">集團招募主儀表板 ｜ 人力資源 HR ｜ 經營決策總覽</div>
+        <div class="sub">人力資源 HR ｜ 招募進度總覽</div>
       </div>
       <div class="snap">資料每日自動更新自 Notion<br>最後更新：<b id="snap">載入中…</b></div>
     </div>
@@ -64,54 +68,66 @@
 
 <div class="wrap">
   <div class="kpis" id="kpis"></div>
-  <div class="grid2">
+
+  <div class="grid3">
     <div class="panel">
       <div class="ph">
         <h2>各部門所有人數</h2>
         <span class="total">在職合計 <b id="hcTotal">0</b> 人</span>
       </div>
-      <div class="cap">各部門目前實際在職人數（已排除離職人員）</div>
+      <div class="cap">各部門在職及近期將報到人數</div>
       <div class="chart-box"><canvas id="hcChart"></canvas></div>
     </div>
+
+    <div class="panel">
+      <div class="ph">
+        <h2>各部門待招募職缺</h2>
+        <span class="total">待招募合計 <b id="opTotal">0</b> 個</span>
+      </div>
+      <div class="cap">各部門尚未到職、仍在招募中的職缺數</div>
+      <div class="chart-box"><canvas id="opChart"></canvas></div>
+    </div>
+
     <div class="panel">
       <div class="ph">
         <h2>各部門人才庫</h2>
         <span class="total">候選合計 <b id="tpTotal">0</b> 人</span>
       </div>
-      <div class="cap">已完成第一階段面試（有訪談日期）之候選人數，依部門統計</div>
+      <div class="cap">已完成第一階段面試（有訪談日期）之候選人數</div>
       <div class="chart-box"><canvas id="tpChart"></canvas></div>
     </div>
   </div>
+
   <footer>
-    職缺與人才庫統計每日自動擷取自 Notion；在職人數於人事異動時更新。<br>
-    人才庫＝第一階段初步訪談評估表中已填訪談日期者（實際完成電話訪談）。
+    職缺、待招募與人才庫統計每日自動擷取自 Notion；在職人數於人事異動時更新。<br>
+    待招募＝招募看板中狀態尚未「到職」之職缺；人才庫＝第一階段面試表中已填訪談日期者。
   </footer>
 </div>
 
 <script>
-const NAVY="#1F3864", BLUE="#2E74B5";
+const NAVY="#1F3864", BLUE="#2E74B5", AMBER="#C77B16";
 Chart.defaults.font.family='"Microsoft JhengHei","微軟正黑體",sans-serif';
-Chart.defaults.font.size=13; Chart.defaults.color="#5A6677";
+Chart.defaults.font.size=12.5; Chart.defaults.color="#5A6677";
 
 function barChart(id,labels,data,color,unit){
  return new Chart(document.getElementById(id),{
   type:"bar",
-  data:{labels,datasets:[{data,backgroundColor:color,borderRadius:5,barThickness:32}]},
-  options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,layout:{padding:{right:24}},
+  data:{labels,datasets:[{data,backgroundColor:color,borderRadius:5,barThickness:28}]},
+  options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,layout:{padding:{right:22}},
    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.x+" "+unit}}},
-   scales:{x:{beginAtZero:true,grid:{color:"#EDF0F5"}},y:{grid:{display:false}}},
+   scales:{x:{beginAtZero:true,grid:{color:"#EDF0F5"},ticks:{precision:0}},y:{grid:{display:false}}},
    animation:{duration:600}}
  });
 }
 function addLabels(id,arr){
  const ch=Chart.getChart(id); if(!ch) return;
  const ctx=ch.ctx; ctx.save();
- ctx.font='700 13px "Microsoft JhengHei",sans-serif'; ctx.fillStyle="#1F3864"; ctx.textBaseline="middle";
- ch.getDatasetMeta(0).data.forEach((bar,i)=>ctx.fillText(arr[i],bar.x+8,bar.y));
+ ctx.font='700 12.5px "Microsoft JhengHei",sans-serif'; ctx.fillStyle="#1F3864"; ctx.textBaseline="middle";
+ ch.getDatasetMeta(0).data.forEach((bar,i)=>ctx.fillText(arr[i],bar.x+7,bar.y));
  ctx.restore();
 }
 
-fetch("data.json?_="+Date.now())   // 加時間戳避免瀏覽器快取
+fetch("data.json?_="+Date.now())
  .then(r=>r.json())
  .then(d=>{
    document.getElementById("snap").textContent = d.snapshot;
@@ -128,16 +144,21 @@ fetch("data.json?_="+Date.now())   // 加時間戳避免瀏覽器快取
       <div class="note">${x.note}</div>
     </div>`).join("");
 
+   const openings = d.openings || d.depts.map(()=>0);
    document.getElementById("hcTotal").textContent=d.headcount.reduce((a,b)=>a+b,0);
+   document.getElementById("opTotal").textContent=openings.reduce((a,b)=>a+b,0);
    document.getElementById("tpTotal").textContent=d.talent.reduce((a,b)=>a+b,0);
+
    barChart("hcChart",d.depts,d.headcount,NAVY,"人");
+   barChart("opChart",d.depts,openings,AMBER,"個職缺");
    barChart("tpChart",d.depts,d.talent,BLUE,"位候選人");
-   setTimeout(()=>{addLabels("hcChart",d.headcount);addLabels("tpChart",d.talent);},700);
+   setTimeout(()=>{
+     addLabels("hcChart",d.headcount);
+     addLabels("opChart",openings);
+     addLabels("tpChart",d.talent);
+   },700);
  })
- .catch(e=>{
-   document.getElementById("snap").textContent="資料讀取失敗";
-   console.error(e);
- });
+ .catch(e=>{ document.getElementById("snap").textContent="資料讀取失敗"; console.error(e); });
 </script>
 </body>
 </html>

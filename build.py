@@ -14,19 +14,19 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-# 兩個資料來源（Data Source ID，已從你的 Notion 取得）
+# 兩個資料來源（Data Source ID）
 JOBS_DS = "30632fab-3664-81f1-b5ab-000bbc2abd23"   # 📌 集團招募主儀表板
 CAND_DS = "30632fab-3664-81b9-8c71-000b28fba3d9"   # 📞 第一階段 初步訪談評估表
 
-# 各部門在職人數：人事異動不頻繁，異動時改這裡即可（或日後改接結構化 Notion 資料庫）
+# 各部門在職人數（含近期將報到者；人事異動時改這裡即可）
 HEADCOUNT = {
-    "投資創新事業": 9,
-    "會展與專案部": 11,
-    "品牌與認證部": 12,
-    "數位開發處":   6,
+    "投資創新事業": 10,
+    "會展與專案部": 13,
+    "品牌與認證部": 11,
+    "數位開發處":   8,
     "財務行政中心": 7,
 }
-# 部門顯示順序（在職人數、人才庫兩張圖共用，方便對照）
+# 部門顯示順序（三張圖共用，方便對照）
 CANON = ["品牌與認證部", "會展與專案部", "投資創新事業", "財務行政中心", "數位開發處"]
 
 
@@ -75,9 +75,10 @@ def date_start(pr):
 
 
 def main():
-    # ---- 1) 職缺：算總職缺 / 完成 / 待招募，並建立 職缺→部門 對照 ----
+    # ---- 1) 職缺：算總職缺 / 完成 / 待招募，並統計各部門待招募 ----
     jobs = query_all(JOBS_DS)
     job_dept = {}
+    openings = {d: 0 for d in CANON}   # 各部門待招募（未到職）職缺數
     total = done = 0
     for j in jobs:
         title = title_text(_p(j, "招聘職務"))
@@ -89,6 +90,8 @@ def main():
         total += 1
         if stage == "到職":
             done += 1
+        elif dept in openings:
+            openings[dept] += 1   # 未到職 = 仍在招募中
     wait = total - done
 
     # ---- 2) 人才庫：第一階段面試表中「有訪談日期」者，依職缺對應部門 ----
@@ -104,13 +107,13 @@ def main():
                 break
         if dept:
             talent[dept] += 1
-        # 無法對應到部門者（如未連結職缺）不計入，避免誤歸
 
     out = {
         "snapshot":  datetime.date.today().isoformat(),
         "kpi":       {"total": total, "done": done, "wait": wait},
         "depts":     CANON,
         "headcount": [HEADCOUNT[d] for d in CANON],
+        "openings":  [openings[d]  for d in CANON],
         "talent":    [talent[d]    for d in CANON],
     }
     with open("data.json", "w", encoding="utf-8") as f:
