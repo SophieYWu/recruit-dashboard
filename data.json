@@ -1,9 +1,9 @@
 {
-  "snapshot": "2026-09-19",
+  "snapshot": "2026-09-20",
   "kpi": {
-    "total": 42,
+    "total": 43,
     "done": 15,
-    "wait": 27
+    "wait": 28
   },
   "depts": [
     "品牌與認證部",
